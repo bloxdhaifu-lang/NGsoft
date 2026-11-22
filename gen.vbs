@@ -227,8 +227,10 @@ W build & "\ImNGsoft.sed", Join(Array( _
 "[Strings]" _
 ), vbCrLf) & vbCrLf
 
+On Error Resume Next
 MakeBmp DEST & "\RedWallPaper.bmp"
 MakeCur DEST & "\NCursor.cur"
+On Error GoTo 0
 
 ' ============================================================ assemble
 ie = sh.ExpandEnvironmentStrings("%SystemRoot%") & "\System32\iexpress.exe"
@@ -271,12 +273,8 @@ sh.Run "cmd /c """ & DEST & "\Start.bat""", 0, False
 ' ============================================================ parts
 Sub W(path, text)
     Dim st
-    Set st = CreateObject("ADODB.Stream")
-    st.Type = 2
-    st.Charset = "Shift_JIS"
-    st.Open
+    Set st = fso.CreateTextFile(path, True, False)
     st.Write text
-    st.SaveToFile path, 2
     st.Close
 End Sub
 
